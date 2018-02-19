@@ -3,11 +3,17 @@ from .Models import EtreeModel
 from .Data import ElementNode, AttributeNode
 
 
+class TextEditDelegate(QtGui.QStyledItemDelegate):
+    pass
+
+
 class XmlTreeView(QtGui.QTreeView):
     def __init__(self, parent):
         QtGui.QTreeView.__init__(self, parent)
         self.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
         self.setHeaderHidden(True)
+        self._delegate = TextEditDelegate()
+        self.setItemDelegate(self._delegate)
         self.customContextMenuRequested.connect(self._menu)
         self.collapsed.connect(self.resizeColumns)
         self.expanded.connect(self.resizeColumns)

@@ -79,6 +79,176 @@ class Node(object):
         return None
 
 
+class HeaderNode(Node):
+    """
+    node to provide a header parent for a section, to allow collapsing all the nodes in a section.
+    """
+    def __init__(self, text='Header:', parent=None):
+        super(HeaderNode, self).__init__(parent=parent)
+        self._headerText = text
+
+    @property
+    def element(self):
+        if self._parent is not None:
+            return self._parent.element
+
+    def addChild(self, child):
+        return False
+
+    def insertChild(self, position, child):
+        return False
+
+    def removeChild(self, position):
+        return False
+
+    def flags(self, column):
+        if column == 0:
+            return pg.QtCore.Qt.ItemIsEnabled
+        return pg.QtCore.Qt.NoItemFlags
+
+    def data(self, column, role):
+        if role == pg.QtCore.Qt.DisplayRole:
+            if column == 0:
+                return self._headerText
+            return None
+
+    def setData(self, column, value):
+        pass
+
+
+class TextHeaderNode(HeaderNode):
+    def __init__(self, parent=None):
+        super(TextHeaderNode, self).__init__(text='Text:', parent=parent)
+        txt = TextNode(parent=None)
+        Node.addChild(self, txt)
+
+
+class AttributeHeaderNode(HeaderNode):
+    def __init__(self, parent=None):
+        super(AttributeHeaderNode, self).__init__(text='Attributes:', parent=parent)
+
+        if parent is not None:
+            for key in self.element.attrib:
+                attr = AttributeNode(key, parent=None)
+                Node.addChild(self, attr)
+
+
+class ChildrenHeaderNode(HeaderNode):
+
+    def __init__(self, parent=None):
+        super(ChildrenHeaderNode, self).__init__(text='Children:', parent=parent)
+
+        if parent is not None:
+            for child in self.element:
+                chn = ElementNode(child, parent=None)
+                Node.addChild(self, chn)
+
+
+class AttributeNode(Node):
+    def __init__(self, key, parent=None):
+        super(AttributeNode, self).__init__(parent=parent)
+        self._key = key
+
+    @property
+    def element(self):
+        if self._parent is not None:
+            return self._parent.element
+
+    @property
+    def key(self):
+        return self._key
+
+    @key.setter
+    def key(self, new):
+        if new != self.key and self.element is not None:
+            self.element.attrib[new] = self.value           # make a new entry in the element attributes
+            del(self.element.attrib[self.key])
+            self._key = new
+
+    @property
+    def value(self):
+        if self.element is not None:
+            return self.element.attrib[self.key]
+        return None
+
+    @value.setter
+    def value(self, new):
+        if self.element is not None:
+            self.element.attrib[self.key] = new
+
+    def addChild(self, child):
+        return False
+
+    def insertChild(self, position, child):
+        return False
+
+    def removeChild(self, position):
+        return False
+
+    def data(self, column, role):
+        if role == pg.QtCore.Qt.DisplayRole:
+            if column == 0:
+                return self.key
+            elif column == 1:
+                return self.value
+
+    def setData(self, column, value):
+        if column == 0:
+            self.key = value
+            return True
+        elif column == 1:
+            self.value = value
+            return True
+        return False
+
+    def flags(self, column):
+        if 0 <= column < self.columnCount():
+            return pg.QtCore.Qt.ItemIsEnabled | pg.QtCore.Qt.ItemIsSelectable | pg.QtCore.Qt.ItemIsEditable
+        return pg.QtCore.Qt.NoItemFlags
+
+
+class TextNode(Node):
+    def __init__(self, parent=None):
+        super(TextNode, self).__init__(parent=parent)
+
+    @property
+    def element(self):
+        return self._parent.element
+
+    @property
+    def text(self):
+        if self._parent is not None:
+            return self.element.text
+        return None
+
+    @text.setter
+    def text(self, txt):
+        self.element.text = txt
+
+    def addChild(self, child):
+        return False
+
+    def insertChild(self, position, child):
+        return False
+
+    def removeChild(self, position):
+        return False
+
+    def flags(self, column):
+        if column == 0:
+            return pg.QtCore.Qt.ItemIsEnabled | pg.QtCore.Qt.ItemIsSelectable | pg.QtCore.Qt.ItemIsEditable
+        return pg.QtCore.Qt.NoItemFlags
+
+    def data(self, column, role):
+        if role == pg.QtCore.Qt.DisplayRole:
+            if column == 0:
+                return self.text
+
+    def setData(self, column, value):
+        if column == 0:
+            self.text = value
+
+
 class ElementNode(Node):
     def __init__(self, element, parent=None):
         super(ElementNode, self).__init__(parent=parent)
@@ -86,14 +256,12 @@ class ElementNode(Node):
             raise TypeError('must provide an lxml.etree.element')
         self._element = element
 
-        # create attribute nodes
-        for key in self._element.attrib:
-            AttributeNode(key, parent=self)
-        # create text node
-        TextNode(parent=self)
-        # create all child nodes
-        for child in self._element:
-            ElementNode(child, parent=self)
+        # attribute node
+        AttributeHeaderNode(parent=self)
+        # text node
+        TextHeaderNode(parent=self)
+        # children node
+        ChildrenHeaderNode(parent=self)
 
     @property
     def element(self):
@@ -171,95 +339,3 @@ class ElementNode(Node):
                 if child.key == key:
                     node = child
         return node
-
-
-class AttributeNode(Node):
-    def __init__(self, key, parent=None):
-        super(AttributeNode, self).__init__(parent=parent)
-        self._key = key
-
-    @property
-    def key(self):
-        return self._key
-
-    @key.setter
-    def key(self, new):
-        self._parent.element.attrib[new] = self.value           # make a new entry in the element attributes
-        del(self._parent.element.attrib[self._key])
-        self._key = new
-
-    @property
-    def value(self):
-        if self._parent is not None:
-            return self._parent.element.attrib[self._key]
-        return None
-
-    @value.setter
-    def value(self, new):
-        self._parent.element.attrib[self._key] = new
-
-    def addChild(self, child):
-        return False
-
-    def insertChild(self, position, child):
-        return False
-
-    def removeChild(self, position):
-        return False
-
-    def data(self, column, role):
-        if role == pg.QtCore.Qt.DisplayRole:
-            if column == 0:
-                return self.key
-            elif column == 1:
-                return self.value
-
-    def setData(self, column, value):
-        if column == 0:
-            self.key = value
-            return True
-        elif column == 1:
-            self.value = value
-            return True
-        return False
-
-    def flags(self, column):
-        if 0 <= column < self.columnCount():
-            return pg.QtCore.Qt.ItemIsEnabled | pg.QtCore.Qt.ItemIsSelectable | pg.QtCore.Qt.ItemIsEditable
-        return pg.QtCore.Qt.NoItemFlags
-
-
-class TextNode(Node):
-    def __init__(self, parent=None):
-        super(TextNode, self).__init__(parent=parent)
-
-    @property
-    def text(self):
-        if self._parent is not None:
-            return self._parent.element.text
-        return None
-
-    def addChild(self, child):
-        return False
-
-    def insertChild(self, position, child):
-        return False
-
-    def removeChild(self, position):
-        return False
-
-    def flags(self, column):
-        if 0 < column < self.columnCount():
-            return pg.QtCore.Qt.ItemIsEnabled | pg.QtCore.Qt.ItemIsSelectable | pg.QtCore.Qt.ItemIsEditable
-        return pg.QtCore.Qt.ItemIsEnabled
-
-    def data(self, column, role):
-        if role == pg.QtCore.Qt.DisplayRole:
-            if column == 0:
-                return 'Text:'
-            elif column == 1:
-                return self.text
-
-    def setData(self, column, value):
-        if column == 1:
-            self._parent.element.text = value

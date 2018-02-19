@@ -31,9 +31,11 @@ class TestWin(base, form):
 
 
 """ Make some simple XML with etree"""
-root = etree.Element('xmlRoot', {'attrib1': 'foo'})
-child1 = etree.SubElement(root, 'Child1')
-etree.SubElement(child1, 'SubChild1')
+root = etree.Element('xmlRoot', {'version': '1'})
+root.text = 'Some Multi-Line text.\nNext line\nl2\nl3\nl4\nl5\nl6\nl7\nl8'
+child1 = etree.SubElement(root, 'Child1', {'attribute': '10'})
+schild1 = etree.SubElement(child1, 'SubChild1')
+schild1.text = 'Here is some text.'
 etree.SubElement(root, 'Child2')
 
 """initialize the EtreeModel with the root element of our xml"""

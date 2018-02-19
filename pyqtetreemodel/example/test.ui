@@ -34,7 +34,16 @@
     </item>
     <item row="1" column="0" rowspan="4">
      <widget class="XmlTreeView" name="uiTree">
+      <property name="autoScroll">
+       <bool>false</bool>
+      </property>
+      <property name="autoScrollMargin">
+       <number>3</number>
+      </property>
       <property name="rootIsDecorated">
+       <bool>true</bool>
+      </property>
+      <property name="wordWrap">
        <bool>true</bool>
       </property>
      </widget>
